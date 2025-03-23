@@ -34,7 +34,7 @@ This is a simple **Exam Timer** web application that helps students manage their
 Simply open `index.html` in a web browser. No additional setup is required.
 
 ## Preview
-To check out the live preview, visit: **[preview](https://aryansingh783.github.io/exam-timer/)**
+To check out the live preview, visit: **[preview](https://aryansingh783.github.io/practice-test-timer/)**
 
 ## Contact
 If you encounter any issues, feel free to reach out on Instagram: **[@aryan.singh.783](https://www.instagram.com/aryan.singh.783)**
