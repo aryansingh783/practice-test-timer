@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Timer</title>
+    <style>
+        body {
+            background-color: #2c2f33;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            background-color: #23272a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            width: 80%;
+            max-width: 500px;
+        }
+
+        .input-field {
+            margin: 10px 0;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #7289da;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #99aab5;
+            cursor: not-allowed;
+        }
+
+        #time-label,
+        #question-label {
+            margin: 10px 0;
+            font-size: 1.2em;
+        }
+
+        #progress-bar {
+            width: 100%;
+            background-color: #99aab5;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        #progress {
+            height: 20px;
+            background-color: #7289da;
+            width: 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #23272a;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+
+        .modal-header {
+            padding: 2px 16px;
+            background-color: #7289da;
+            color: white;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .modal-body {
+            padding: 20px;
+            color: white;
+        }
+
+        .modal-footer {
+            padding: 10px 16px;
+            background-color: #7289da;
+            color: white;
+            text-align: right;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            color: #ffffff;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Exam Timer</h1>
+        <div class="input-field">
+            <label for="time-input">Enter Time (hh:mm):</label>
+            <input type="text" id="time-input" placeholder="hh:mm">
+        </div>
+        <div class="input-field">
+            <label for="total-questions">Enter Total Questions:</label>
+            <input type="number" id="total-questions" value="10" min="1">
+        </div>
+        <button onclick="startTimer()">Start Timer</button>
+        <button onclick="pauseTimer()" id="pause-button" disabled>Pause</button>
+        <div id="time-label">Time Left: --:--</div>
+        <div id="question-label">Question: 0</div>
+        <div id="progress-bar">
+            <div id="progress"></div>
+        </div>
+        <button onclick="nextQuestion()" id="next-question-button" disabled>Next Question</button>
+        <button onclick="resetTimer()" id="reset-button" disabled>Reset</button>
+    </div>
+
+    <div id="analysis-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Exam Completed!</h2>
+            </div>
+            <div class="modal-body" id="analysis-content">
+                <!-- Analysis content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        If you encounter any issues, contact on Instagram: <a>@aryan.singh.783</a>
+    </div>
+
+    <script>
+        let remainingTime = 0;
+        let currentQuestion = 0;
+        let questionTimes = [];
+        let timerRunning = false;
+        let timerInterval;
+        let startTime;
+
+        function startTimer() {
+            const timeInput = document.getElementById('time-input').value;
+            const totalQuestions = parseInt(document.getElementById('total-questions').value);
+            const [hours, minutes] = timeInput.split(':').map(Number);
+            remainingTime = (hours * 3600) + (minutes * 60);
+            currentQuestion = 1;
+            questionTimes = Array(totalQuestions).fill(0);
+            timerRunning = true;
+            startTime = new Date().getTime();
+            updateTimer();
+
+            document.getElementById('next-question-button').disabled = false;
+            document.getElementById('pause-button').disabled = false;
+            document.getElementById('reset-button').disabled = false;
+            document.getElementById('question-label').innerText = `Question: ${currentQuestion}/${totalQuestions}`;
+            updateProgressBar();
+        }
+
+        function updateTimer() {
+            if (timerRunning && remainingTime > 0) {
+                remainingTime--;
+                const hours = Math.floor(remainingTime / 3600);
+                const minutes = Math.floor((remainingTime % 3600) / 60);
+                const seconds = remainingTime % 60;
+                document.getElementById('time-label').innerText = `Time Left: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                timerInterval = setTimeout(updateTimer, 1000);
+            } else {
+                finishExam();
+            }
+        }
+
+        function nextQuestion() {
+            const totalQuestions = parseInt(document.getElementById('total-questions').value);
+            const now = new Date().getTime();
+            if (currentQuestion > 0) {
+                questionTimes[currentQuestion - 1] = now - startTime;
+            }
+            if (currentQuestion >= totalQuestions) {
+                finishExam();
+            } else {
+                currentQuestion++;
+                startTime = now;
+                document.getElementById('question-label').innerText = `Question: ${currentQuestion}/${totalQuestions}`;
+                updateProgressBar();
+            }
+        }
+
+        function finishExam() {
+            if (timerRunning) {
+                const now = new Date().getTime();
+                const totalQuestions = parseInt(document.getElementById('total-questions').value);
+                if (currentQuestion > 0) {
+                    questionTimes[currentQuestion - 1] = now - startTime;
+                }
+                timerRunning = false;
+                clearTimeout(timerInterval);
+                document.getElementById('time-label').innerText = 'Exam Completed!';
+                const analysis = questionTimes.map((time, index) => {
+                    const elapsed = time / 1000;
+                    const hours = Math.floor(elapsed / 3600);
+                    const minutes = Math.floor((elapsed % 3600) / 60);
+                    const seconds = Math.floor(elapsed % 60);
+                    return `Q${index + 1}: ${hours}h ${minutes}m ${seconds}s`;
+                }).join('<br>');
+                document.getElementById('analysis-content').innerHTML = `<p>Total Time Analysis:</p>${analysis}`;
+                showModal();
+                playNotificationSound();
+            }
+        }
+
+        function pauseTimer() {
+            timerRunning = !timerRunning;
+            if (timerRunning) {
+                startTime = new Date().getTime() - (remainingTime * 1000);
+                updateTimer();
+                document.getElementById('pause-button').innerText = 'Pause';
+            } else {
+                clearTimeout(timerInterval);
+                document.getElementById('pause-button').innerText = 'Resume';
+            }
+        }
+
+        function resetTimer() {
+            timerRunning = false;
+            clearTimeout(timerInterval);
+            document.getElementById('time-label').innerText = 'Time Left: --:--';
+            document.getElementById('question-label').innerText = 'Question: 0';
+            document.getElementById('pause-button').disabled = true;
+            document.getElementById('pause-button').innerText = 'Pause';
+            document.getElementById('next-question-button').disabled = true;
+            document.getElementById('reset-button').disabled = true;
+            document.getElementById('progress').style.width = '0%';
+        }
+
+        function updateProgressBar() {
+            const totalQuestions = parseInt(document.getElementById('total-questions').value);
+            const progressPercentage = (currentQuestion / totalQuestions) * 100;
+            document.getElementById('progress').style.width = `${progressPercentage}%`;
+        }
+
+        function playNotificationSound() {
+            const audio = new Audio('https://drive.google.com/file/d/11F7f_47wl9UrD-FrCo13ERJiOr9NDXwI/preview');
+            audio.play();
+        }
+
+        function showModal() {
+            document.getElementById('analysis-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('analysis-modal').style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
